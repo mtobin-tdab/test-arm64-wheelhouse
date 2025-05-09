@@ -1,0 +1,35 @@
+name: Build arm64 Wheelhouse
+on:
+  workflow_call:   
+
+jobs:
+  build_arm64_wheel:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+  
+      - name: Install Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          cache: 'pip'
+  
+      - name: Build wheelhouse
+        run: |
+          mkdir -p wheelhouse
+          pip install --upgrade pip
+          pip wheel setuptools~=80.0.0 setuptools-scm~=8.3.1 wheel~=0.45.1 -w wheelhouse
+          pip wheel torch==2.2.1+cpu -f https://download.pytorch.org/whl/torch_stable.html  -w wheelhouse
+          pip wheel ./src/octaipipe-core/.[all-data-loaders,fl] -w wheelhouse 
+          pip wheel ./src/octaipipe-lite -w wheelhouse --find-links wheelhouse
+          pip wheel ./.[torch] -w wheelhouse --find-links wheelhouse
+  
+      - name: Archive wheelhouse
+        run: tar -czf wheelhouse.tar.gz wheelhouse
+      
+      - name: Upload wheelhouse artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-wheelhouse
+          path: wheelhouse.tar.gz
